@@ -1,0 +1,44 @@
+[
+  {
+    "id": "2329",
+    "hostName": "Anna",
+    "picture": "/img/houses/1.jpg",
+    "type": "Entirehouse",
+    "town": "Ostuni",
+    "title": "BeautifulflatinOstuni!",
+    "price": "50.00",
+    "rating": 4.93,
+    "reviewsCount": 198,
+    "superhost": true,
+    "description": "SpendaunforgettableholidayintheenchantingsurroundingsofthetownofCisternino(reachablefromthenearairportsofBariandBrindisi).<br>TrulloEderaoffersaheavenofpeaceandtranquillity,setinanelevatedpositionwithastunningview.<br>It'stheperfectplaceifyoulikenature.Youcanstayunderanolivetreereadingagoodbook,youcanhaveawalkinthesmallcountrystreetsorgotothenearestbeaches.<br>YoucaneveneasilyvisitanyofthesightsinApuliasuchasthecavesofCastellana,thetrulliofAlberobello,thebaroquecitiesofLecceandMartinaFranca,theexcavationsofEgnazia,thezoosafariofFasano,CasteldelMontewithFrederick'scastle,Grottagliefamousforitsceramics,Taranto,BrindisiandLeccemuseums.<br>Pricesvaryonperiodandaretobeconsideredincluded:in-outcomingcleanings,towels,sheets,water,gas,electricity.",
+    "guests": 4,
+    "bedrooms": 1,
+    "beds": 2,
+    "baths": 1,
+    "amenities": {
+      "wifi": true,
+      "kitchen": true,
+      "heating": true,
+      "freeParking": true
+    },
+    "entirePlace": true,
+    "reviews": [
+      {
+        "user": "Radhika",
+        "date": "August2019",
+        "price": "70.00",
+        "avatar": "https://a0.muscache.com/im/users/34403074/profile_pic/1432859567/original.jpg?aki_policy=profile_x_medium",
+        "comment": "We had anex cellen tstay atthetrullo-everythingwasperfect,startingwithAnna’sgenerositytomeetusintownsowewouldn’tloseourway,tothebeautifulsettingofthetrullo,tothefresheggsandtomatoesforouruse,toAnna’stipsandsuggestionsforlocal"
+      }
+    ]
+  },
+{
+  "id": "2",
+  "picture": "/img/houses/2.webp",
+  "type": "Entirehouse",
+  "town": "IslaMujeres",
+  "title": "TheWorldFamousSeashellHouse~CasaCaracol",
+  "rating": 4.77,
+  "reviewsCount": 246
+}
+]
