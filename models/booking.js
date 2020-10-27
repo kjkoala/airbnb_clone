@@ -3,9 +3,9 @@ const sequelize = require('../database.js')
 
 const DataTypes = Sequelize.DataTypes
 
-class Review extends Sequelize.Model { }
+class Booking extends Sequelize.Model { }
 
-Review.init({
+Booking.init({
   id: {
     type: DataTypes.INTEGER,
     autoIncrement: true,
@@ -13,11 +13,12 @@ Review.init({
   },
   houseId: { type: DataTypes.INTEGER, allowNull: false },
   userId: { type: DataTypes.INTEGER, allowNull: false },
-  comment: { type: DataTypes.TEXT, allowNull: false },
+  startDate: { type: DataTypes.DATEONLY, allowNull: false },
+  endDate: { type: DataTypes.DATEONLY, allowNull: false },
 }, {
   sequelize,
-  modelName: 'review',
+  modelName: 'booking',
   timestamps: true
 })
 
-module.exports = Review
+module.exports = Booking

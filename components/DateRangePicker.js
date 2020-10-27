@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 
 import DayPickerInput from 'react-day-picker/DayPickerInput'
 import 'react-day-picker/lib/style.css'
@@ -30,9 +30,11 @@ const numberOfNightsBetweenDates = (startDate, endDate) => {
   return dayCount;
 }
 
-const DateRangePicker = ({ datesChanged }) => {
+const DateRangePicker = ({ datesChanged, bookedDates }) => {
+  bookedDates = useMemo(() => bookedDates.map(date => new Date(date)), [bookedDates])
   const [startDate, setStartDate] = useState(tomorrow)
   const [endDate, setEndDate] = useState(tomorrow)
+  console.log(bookedDates)
   return (
     <div>
       <div className="date-range-picker-container">
@@ -46,7 +48,7 @@ const DateRangePicker = ({ datesChanged }) => {
           dayPickerProps={{
             modifiers: {
               disabled: [
-                new Date(),
+                ...bookedDates,
                 {
                   before: new Date()
                 }
@@ -75,6 +77,7 @@ const DateRangePicker = ({ datesChanged }) => {
           dayPickerProps={{
             modifiers: {
               disabled: [
+                ...bookedDates,
                 startDate, {
                   before: startDate
                 }]

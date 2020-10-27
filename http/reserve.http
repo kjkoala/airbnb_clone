@@ -1,0 +1,8 @@
+POST http://localhost:3000/api/houses/reserve HTTP/1.1
+content-type: application/json
+
+{
+  "houseId": 1,
+  "startDate": "2020-10-28T00:00:00.000Z",
+  "endDate": "2020-10-29T00:00:00.000Z"
+}

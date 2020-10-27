@@ -1,10 +1,13 @@
+import { useState } from 'react'
 import Head from 'next/head'
-import houses from '../houses.json'
 import Layout from '../../components/Layout'
 import DateRangePicker from '../../components/DateRangePicker'
-import { useState } from 'react'
 
-import { useStoreActions } from 'easy-peasy'
+import { useStoreActions, useStoreState } from 'easy-peasy'
+
+import fetch from 'isomorphic-unfetch'
+
+import axios from 'axios'
 
 const calcNumerOfNightsBetweenDates = (startDate, endDate) => {
   const start = new Date(startDate)
@@ -18,11 +21,46 @@ const calcNumerOfNightsBetweenDates = (startDate, endDate) => {
   return dayCount
 }
 
-const House = ({ house, url }) => {
+const getBookedDates = async (houseId) => {
+  try {
+    const response = await axios.post('http://localhost:3000/api/houses/booked', { houseId })
+    if (response.data.status === 'error') {
+      alert(response.data.message)
+      return
+    }
+    return response.data.dates
+  } catch (e) {
+    console.log(e)
+    return
+  }
+}
+
+const canReverse = async (houseId, startDate, endDate) => {
+  try {
+    const response = await axios.post('http://localhost:3000/api/houses/check', {
+      houseId, startDate, endDate
+    })
+    if(response.data.status === 'error') {
+      alert(response.data.message)
+      return
+    }
+    if(response.data.message === 'busy') return false
+    return true
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+
+const House = ({ house, bookedDates, url }) => {
+  const { user } = useStoreState(({ user }) => user)
+
   const [dateChosen, setDateChosen] = useState(false)
   const [numberOfNightsBetweenDates, setNumberOfNightsBetweenDates] = useState(0)
+  const [startDate, setStartDate] = useState()
+  const [endDate, setEndDate] = useState()
 
-  const { setShowLoginModal } =useStoreActions(actions => actions.modals)
+  const { setShowLoginModal } = useStoreActions(actions => actions.modals)
   return (<Layout content={
     <div className="container">
       <Head>
@@ -34,18 +72,28 @@ const House = ({ house, url }) => {
           {house.type} - {house.town}
         </p>
         <p>{house.title}</p>
-        <p>
+        {house.reviewCount &&
+          <div className="reviews">
+            <h3>{house.countReviews} Reviews</h3>
+            {house.reviews.map((review, index) => <div key={index}>
+              <p>{new Date(review.createAt).toDateString()}</p>
+              <p>{review.comment}</p>
+            </div>)}
+          </div>}
+        {/* <p>
           {house.rating} ({house.reviewsCount})
-        </p>
+        </p> */}
       </article>
       <aside>
         <h2>
           Add dates for prices
-          <DateRangePicker datesChanged={(startDate, endDate) => {
+          <DateRangePicker bookedDates={bookedDates} datesChanged={(startDate, endDate) => {
             setNumberOfNightsBetweenDates(
               calcNumerOfNightsBetweenDates(startDate, endDate)
             );
             setDateChosen(true)
+            setStartDate(startDate)
+            setEndDate(endDate)
           }} />
         </h2>
         {dateChosen && <>
@@ -53,7 +101,28 @@ const House = ({ house, url }) => {
           <p>${house.price}</p>
           <h2>Total price for booking</h2>
           <p>${(numberOfNightsBetweenDates * house.price).toFixed(2)}</p>
-          <button className="reserve" onClick={setShowLoginModal}>Reserve</button>
+          {user ? <button className="reserve" onClick={async () => {
+            try {
+              if(!(await canReverse(house.id, startDate, endDate))) {
+                alert('The dates choosen are not valid')
+                return
+              }
+              const response = await axios.post('/api/houses/reserve', {
+                houseId: house.id,
+                startDate,
+                endDate
+              })
+              if (response.data.status === 'error') {
+                alert(response.data.message)
+                return
+              }
+              console.log(response.data)
+            } catch (e) {
+              console.log(e)
+              return
+            }
+          }}>Reserve</button> :
+            <button className="reserve" onClick={setShowLoginModal}>Reserve</button>}
         </>}
       </aside>
       <style jsx>
@@ -74,10 +143,13 @@ const House = ({ house, url }) => {
   } />)
 }
 
-House.getInitialProps = ({ query }) => {
-  return ({
-    house: houses.filter(house => house.id === query.id)[0]
-  })
+House.getInitialProps = async ({ query }) => {
+  const { id } = query
+
+  const res = await fetch('http://localhost:3000/api/houses/' + id)
+  const house = await res.json()
+  const bookedDates = await getBookedDates(id)
+  return { house, bookedDates }
 }
 
 export default House

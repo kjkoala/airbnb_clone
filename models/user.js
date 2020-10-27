@@ -12,6 +12,11 @@ class User extends Sequelize.Model {
 }
 
 User.init({
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true
+  },
   email: {
     type: DataTypes.STRING,
     allowNull: false
@@ -19,7 +24,7 @@ User.init({
   password: {
     type: DataTypes.STRING,
     allowNull: false
-  }
+  },
 }, {
   sequelize,
   modelName: 'user',
