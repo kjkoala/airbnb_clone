@@ -1,3 +1,4 @@
+import Head from 'next/head'
 import Header from "./Header"
 import { LoginModal } from './LoginModal'
 import { Modal } from './Modal'
@@ -9,6 +10,9 @@ const Layout = ({ content }) => {
   let { showModal, showLoginModal, showRegistrationModal } = useStoreState((state) => state.modals)
   let { setHideModal, setShowRegistartionModal, setShowLoginModal } = useStoreActions(actions => actions.modals)
   return (<div>
+    <Head>
+      <script src="https://js.stripe.com/v3/"></script>
+    </Head>
     <Header />
     <main>{content}</main>
     {showModal && <Modal close={setHideModal}>

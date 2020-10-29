@@ -6,6 +6,7 @@ const SequelizeStore = require('connect-session-sequelize')(session.Store)
 const passport = require('passport')
 const LocalStrategy = require('passport-local').Strategy
 const Op = require('sequelize').Op
+const dotenv = require('dotenv')
 
 const User = require('./models/user.js')
 const House = require('./models/house.js')
@@ -20,6 +21,7 @@ const handle = nextApp.getRequestHandler()
 const sessionStore = new SequelizeStore({ db: sequelize })
 
 sessionStore.sync()
+dotenv.config()
 
 User.sync({ alter: true })
 House.sync({ alter: true })
@@ -37,7 +39,7 @@ const getDatesBetweenDates = (startDate, endDate) => {
 }
 
 const canBookThoseDates = async (houseId, startDate, endDate) => {
-  const results = await Booking({
+  const results = await new Booking({
     where: {
       houseId,
       startDate: {
@@ -92,7 +94,11 @@ nextApp.prepare()
     server.use(bodyParser.urlencoded({ extended: false }))
 
     // parse application/json
-    server.use(bodyParser.json())
+    server.use(bodyParser.json({
+      verify: (req, res, buf) => {
+        req.rawBody = buf
+      }
+    }))
 
     server.use(session({
       secret: 'pipxjh29jdpw',
@@ -214,7 +220,7 @@ nextApp.prepare()
         return
       }
 
-      const { houseId, startDate, endDate } = req.body
+      const { houseId, startDate, endDate, sessionId } = req.body
 
       if (!(await canBookThoseDates(houseId, startDate, endDate))) {
         res.status(500).json({
@@ -223,7 +229,7 @@ nextApp.prepare()
         })
         return
       }
-        const userEmail = req.session.passport.user
+      const userEmail = req.session.passport.user
       User.findOne({
         where: {
           email: userEmail
@@ -234,7 +240,8 @@ nextApp.prepare()
             houseId,
             userId: user.id,
             startDate,
-            endDate
+            endDate,
+            sessionId
           })
         })
         .then(() => {
@@ -291,6 +298,94 @@ nextApp.prepare()
         status: ' success',
         message
       })
+    })
+
+    server.post('/api/stripe/session', async (req, res) => {
+      const { amount } = req.body
+
+      const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        line_items: [{
+          name: 'Booking amount on Airbnb clone',
+          amount: amount * 100,
+          currency: 'usd',
+          quantity: 1
+        }],
+        success_url: process.env.BASE_URL + '/bookings',
+        cancel_url: process.env.BASE_URL + '/bookings'
+      })
+      res.json({
+        status: 'success',
+        sessionId: session.id,
+        stripePublicKey: process.env.STRIPE_PUBLIC_KEY
+      })
+    })
+
+    server.post('/api/stripe/webhook', async (req, res) => {
+      const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
+      const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET
+      const sig = req.headers['stripe-signature']
+
+      let event
+
+      try {
+        event = stripe.webhooks.constructEvent(req.rawBody, sig, endpointSecret)
+      } catch (e) {
+        res.status(400).json({
+          status: 'error',
+          message: 'Webhook Error: ' + e.message
+        })
+        return
+      }
+
+      if (event.type === 'checkout.session.completed') {
+        const sessionId = event.data.object.id
+
+        try {
+          Booking.update({
+            paid: true
+          }, {
+            where: { sessionId }
+          })
+        } catch (e) {
+          console.log(e)
+        }
+        res.json({
+          received: true
+        })
+      }
+    })
+
+    server.post('/api/bookings/clean', (req, res) => {
+      Booking.destroy({
+        where: { paid: false }
+      })
+
+      res.json({
+        status: 'success',
+        message: 'ok'
+      })
+    })
+
+    server.get('/api/bookings/list', async (req, res) => {
+      Booking.findAndCountAll({
+        where: { paid: false }
+      })
+        .then(async (result) => {
+          const bookings = await Promise.all(
+            result.rows.map(async (booking) => {
+              const data = {}
+              data.booking = booking.dataValues
+              data.house = (await House.findByPk(data.booking.houseId)).dataValues
+              return data
+            })
+          )
+
+          res.json({
+            bookings
+          })
+        })
     })
 
     server.all('*', (req, res) => {

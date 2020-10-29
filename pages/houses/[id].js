@@ -40,11 +40,11 @@ const canReverse = async (houseId, startDate, endDate) => {
     const response = await axios.post('http://localhost:3000/api/houses/check', {
       houseId, startDate, endDate
     })
-    if(response.data.status === 'error') {
+    if (response.data.status === 'error') {
       alert(response.data.message)
       return
     }
-    if(response.data.message === 'busy') return false
+    if (response.data.message === 'busy') return false
     return true
   } catch (e) {
     console.error(e)
@@ -103,20 +103,34 @@ const House = ({ house, bookedDates, url }) => {
           <p>${(numberOfNightsBetweenDates * house.price).toFixed(2)}</p>
           {user ? <button className="reserve" onClick={async () => {
             try {
-              if(!(await canReverse(house.id, startDate, endDate))) {
+              if (!(await canReverse(house.id, startDate, endDate))) {
                 alert('The dates choosen are not valid')
                 return
               }
-              const response = await axios.post('/api/houses/reserve', {
-                houseId: house.id,
-                startDate,
-                endDate
+              const sessionResponse = await axios.post('/api/stripe/session', {
+                amount: house.price * numberOfNightsBetweenDates
               })
-              if (response.data.status === 'error') {
-                alert(response.data.message)
+              if (sessionResponse.data.status === 'error') {
+                alert(sessionResponse.data.message)
                 return
               }
-              console.log(response.data)
+              const sessionId = sessionResponse.data.sessionId
+              const stripePublicKey = sessionResponse.data.stripePublicKey
+              const reserveResponse = await axios.post('/api/houses/reserve', {
+                houseId: house.id,
+                startDate,
+                endDate,
+                sessionId
+              })
+              if (reserveResponse.data.status === 'error') {
+                alert(reserveResponse.data.message)
+                return
+              }
+              const stripe = Stripe(stripePublicKey)
+              const { error } = await stripe.redirectToCheckout({
+                sessionId
+              })
+              console.log('[STRIPE_ERROR]',error)
             } catch (e) {
               console.log(e)
               return
