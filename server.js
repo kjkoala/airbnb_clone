@@ -369,8 +369,28 @@ nextApp.prepare()
     })
 
     server.get('/api/bookings/list', async (req, res) => {
+      if (!req.session.passport || !req.session.passport.user) {
+        res.status(403).json({
+          status: 'error',
+          message: 'Unautorized'
+        })
+        return
+      }
+      const userEmail = req.session.passport.user
+      const user = await User.findOne({
+        where: {
+          email: userEmail
+        }
+      })
       Booking.findAndCountAll({
-        where: { paid: false }
+        where: {
+          paid: false,
+          userId: user.id,
+          endDate: {
+            [Op.gte]: new Date()
+          }
+        },
+        order: [['startDate', 'ASC']]
       })
         .then(async (result) => {
           const bookings = await Promise.all(
@@ -387,6 +407,59 @@ nextApp.prepare()
           })
         })
     })
+
+    server.get('/api/host/list', async (req, res) => {
+      if (!req.session.passport || !req.session.passport.user) {
+        res.status(403).json({
+          status: 'error',
+          message: 'Unauthorized'
+        })
+        return
+      }
+
+      let userEmail = req.session.passport.user
+      let user = await User.findOne({
+        where: {
+          email: userEmail
+        }
+      })
+
+      const houses = await House.findAll({
+        where: {
+          host: user.id
+        }
+      })
+
+      const houseIds = houses.map(house => house.dataValues.id)
+
+      const bookingData = await Booking.findAll({
+        where: {
+          paid: false,
+          houseId: {
+            [Op.in]: houseIds
+          },
+          endDate: {
+            [Op.gte]: new Date()
+          }
+        },
+        order: [['startDate', 'ASC']]
+      })
+
+      const bookings = await Promise.all(
+        bookingData.map(async (booking) => ({
+          booking: booking.dataValues,
+          house: houses.filter((house) => house.dataValues.id === booking.dataValues.houseId)[0].dataValues
+        }))
+      )
+
+      res.json({
+        status: 'success',
+        bookings,
+        houses
+      })
+    })
+
+    // server.post('')
 
     server.all('*', (req, res) => {
       return handle(req, res)

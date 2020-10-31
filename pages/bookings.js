@@ -45,7 +45,11 @@ const Bookings = ({ bookings }) => {
 }
 
 Bookings.getInitialProps = async (ctx) => {
-  const response = await axios.get('http://localhost:3000/api/bookings/list')
+  const response = await axios({
+    method: 'get',
+    url: 'http://localhost:3000/api/bookings/list',
+    headers: ctx.req ? { cookie: ctx.req.headers.cookie } : undefined
+  })
 
   return { bookings: response.data.bookings }
 }

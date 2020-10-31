@@ -18,6 +18,16 @@ const Header = () => {
       <ul>
         {user ? <>
           <li className="username"><a>{user}</a></li>
+          <li className="username">
+            <Link href="/host">
+              <a>Your houses</a>
+            </Link>
+          </li>
+          <li className="username">
+            <Link href="/host/new">
+              <a>Add House</a>
+            </Link>
+          </li>
           <li className="username"><a href="#" onClick={async () => {
             await axios.post('/api/auth/logout');
             setUser(null)
