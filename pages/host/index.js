@@ -26,7 +26,7 @@ const Host = ({ houses, bookings }) => {
                   {house.title} in {house.town}
                 </h2>
                 <p>
-                  <Link as={`/houses/${house.id}`} href={{ pathname: '/houses/[id]', query: { id: house.id } }}>
+                  <Link href={'/houses/'+house.id}>
                     <a>View house page</a>
                   </Link>
                 </p>

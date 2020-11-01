@@ -13,6 +13,10 @@ const House = require('./models/house.js')
 const Review = require('./models/review.js')
 const Booking = require('./models/booking.js')
 
+const sanitizeHtml = require('sanitize-html')
+const fileupload = require('express-fileupload')
+const randomstring = require('randomstring')
+
 const sequelize = require('./database.js')
 const port = parseInt(process.env.PORT, 10) || 3000
 const dev = process.env.NODE_ENV !== 'production'
@@ -99,6 +103,8 @@ nextApp.prepare()
         req.rawBody = buf
       }
     }))
+
+    server.use(fileupload())
 
     server.use(session({
       secret: 'pipxjh29jdpw',
@@ -309,7 +315,7 @@ nextApp.prepare()
         line_items: [{
           name: 'Booking amount on Airbnb clone',
           amount: amount * 100,
-          currency: 'usd',
+          currency: 'rub',
           quantity: 1
         }],
         success_url: process.env.BASE_URL + '/bookings',
@@ -459,7 +465,111 @@ nextApp.prepare()
       })
     })
 
-    // server.post('')
+    server.post('/api/host/new', async (req, res) => {
+      const houseData = req.body.house
+
+      if (!req.session.passport) {
+        res.status(403).json({
+          status: 'error',
+          message: 'Unauthorized'
+        })
+        return
+      }
+
+      const userEmail = req.session.passport.user
+
+      let user = await User.findOne({
+        where: {
+          email: userEmail
+        }
+      })
+
+      houseData.host = user.id
+
+      await House.create(houseData);
+
+      res.json({
+        status: 'success',
+        message: 'ok'
+      })
+    })
+
+    server.post('/api/host/edit', async (req, res) => {
+      const houseData = req.body.house
+
+      if (!req.session.passport) {
+        res.status(403).json({
+          status: 'error',
+          message: 'Unauthorized'
+        })
+        return
+      }
+
+      const userEmail = req.session.passport.user
+
+      const user = await User.findOne({
+        where: {
+          email: userEmail
+        }
+      })
+
+      const house = await House.findByPk(houseData.id)
+      if (house) {
+        if (house.host !== user.id) {
+          res.status(403).json({
+            status: 'error',
+            message: 'Unauthorized'
+          })
+          return
+        }
+        houseData.description = sanitizeHtml(houseData.description, {
+          allowedTags: ['b', 'i', 'em', 'strong', 'p', 'br']
+        })
+        await House.update(houseData, {
+          where: {
+            id: houseData.id
+          }
+        })
+
+        res.json({
+          status: 'success',
+          message: 'ok'
+        })
+      } else {
+        res.status(404).json({
+          status: 'error',
+          message: 'Not found'
+        })
+        return
+      }
+    })
+
+    server.post('/api/host/image', (req, res) => {
+      if (!req.session.passport) {
+        res.status(403).json({
+          status: 'error',
+          message: 'Unauthorized'
+        })
+        return
+      }
+      const image = req.files.image
+      const filename = randomstring.generate(7) + image.name.replace(/\s/g, '')
+      const path = __dirname + '/public/img/houses/' + filename
+
+      image.mv(path, (error) => {
+        if(error) {
+          res.status(500).json({
+            status: 'error',
+            message: error
+          })
+          return
+        }
+        res.json({
+          status: 'success',
+          path: '/img/houses/'+filename
+        })
+      })
+    })
 
     server.all('*', (req, res) => {
       return handle(req, res)
